@@ -5,8 +5,8 @@ use std::cmp::Ordering;
 use std::mem;
 
 pub struct GensortRecord {
-    key: [u8; 10],
-    value: [u8; 90]
+    pub key: [u8; 10],
+    pub value: [u8; 90]
 }
 
 impl GensortRecord {

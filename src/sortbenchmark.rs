@@ -1,8 +1,7 @@
-use std::cmp::Ordering;
 use std::fs::File;
-use std::io::Error;
-use std::io::{BufRead, BufReader, Read};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::mem;
+use std::path::Path;
 
 pub struct GensortRecord {
     pub key: [u8; 10],
@@ -22,6 +21,14 @@ impl GensortRecord {
 }
 
 const RECORD_SIZE: usize = mem::size_of::<GensortRecord>();
+
+pub fn read_records_from_file<P: AsRef<Path>>(path: P) -> Result<Vec<GensortRecord>, String> {
+    let input_file = File::open(path);
+    match input_file {
+        Ok(file) => read_records(file),
+        Err(msg) => Err(format!("Error opening file. Reason: {}", msg)),
+    }
+}
 
 pub fn calculate_number_of_records(file: &File) -> Result<usize, String> {
     let file_data_len = match file.metadata() {
@@ -50,8 +57,7 @@ pub fn read_records(file: File) -> Result<Vec<GensortRecord>, String> {
             records.reserve(num_records);
             let mut base = [0u8; RECORD_SIZE];
             for _ in 0..num_records {
-                // READ DATA
-                reader.read_exact(&mut base);
+                let _ = reader.read_exact(&mut base);
                 let s = GensortRecord::new(&base);
                 records.push(s);
             }
@@ -61,6 +67,32 @@ pub fn read_records(file: File) -> Result<Vec<GensortRecord>, String> {
     };
 
     records
+}
+
+pub fn write_records_to_file<P: AsRef<Path>>(
+    records: &Vec<GensortRecord>,
+    path: P,
+) -> Result<(), String> {
+    let output_file = File::create(path);
+    match output_file {
+        Ok(writer) => {
+            let mut buffered_writer = BufWriter::new(writer);
+            let mut temp_buffer: [u8; 100] = [0u8; RECORD_SIZE];
+            let writing: Result<Vec<_>, _> = records
+                .iter()
+                .map(|record| {
+                    temp_buffer[..10].copy_from_slice(&record.key[..]);
+                    temp_buffer[10..].copy_from_slice(&record.value[..]);
+                    buffered_writer.write_all(&temp_buffer)
+                })
+                .collect();
+            match writing {
+                Ok(_) => Ok(()),
+                Err(msg) => Err(format!("Error writing records. Reason: {}", msg))
+            }
+        }
+        Err(msg) => Err(format!("Error creating output file. Reason: {}", msg)),
+    }
 }
 
 #[cfg(test)]

@@ -8,7 +8,7 @@ fn main() {
     let input_file = File::open("./data/minute.bin");
     let r = match input_file {
         Ok(file) => read_records(file),
-        Err(msg) => Err(msg),
+        Err(msg) => Err(format!("Error opening file. Reason: {}", msg))
     };
     // SORT
     let mut records: Vec<GensortRecord> = r.unwrap();

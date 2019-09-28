@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::mem;
 use std::path::Path;
+use file_diff::{diff};
 
 pub struct GensortRecord {
     pub key: [u8; 10],
@@ -98,11 +99,21 @@ pub fn write_records_to_file<P: AsRef<Path>>(
 #[cfg(test)]
 mod tests {
 
-    use crate::sortbenchmark::GensortRecord;
-    use std::mem;
+    use crate::sortbenchmark::{RECORD_SIZE, read_records_from_file, write_records_to_file};
 
     #[test]
     fn test_gensort_size() {
-        assert_eq!(100usize, mem::size_of::<GensortRecord>());
+        assert_eq!(100usize, RECORD_SIZE);
+    }
+
+    #[test]
+    fn test_full_process() {
+        // READ RECORDS
+        let mut records = read_records_from_file("./data/gensort/test_input.bin").unwrap();
+        records.sort_by_key(|record| record.key);
+        assert_eq!(records.len(), 1000);
+        write_records_to_file(&records, "./data/gensort/temp_output.bin").unwrap();
+        // COMPARE FILES
+        assert!(file_diff::diff("./data/gensort/test_output.bin", "./data/gensort/temp_output.bin"));
     }
 }
